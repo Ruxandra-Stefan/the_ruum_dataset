@@ -159,26 +159,25 @@ def generate_session(fake, user_id, start_date, products):
             #print(current_step, product_id, transitions)
             order_id = fake.uuid4()
             product_data = [x for x in products if x['id'] == product_id][0]
-            total_amount = 0
             for product_id in products_added_to_cart:
                 price = product_data.get('price')
+                discount = random.choice([0.10, 0.15, 0.20]) if random.random() < 0.20 else 0
+                line_total = round(price * (1 - discount), 2)
                 order_items.append({
                     'order_item_id': fake.uuid4(),
                     'order_id': order_id,
                     'product_id': product_id,
                     'quantity': 1,
                     'unit_price': price,
-                    'discount': 0,
-                    'line_total': price
+                    'discount': discount,
+                    'line_total': line_total
                 })
-                total_amount += price
             orders.append({
                 'order_id': order_id,
                 'user_id': user_id,
                 'order_date': event_time,
                 'order_status': random.choice(ORDER_STATUSES),
                 'payment_method': random.choice(PAYMENT_METHODS),
-                'total_amount': total_amount,
                 'updated_at': event_time,
             })
             current_step = pick_next_step(transitions)
