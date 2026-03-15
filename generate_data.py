@@ -107,7 +107,6 @@ def generate_session(fake, user_id, start_date, products):
     user_events = []
     order_items = []
     orders = []
-    locations = []
 
     ORDER_STATUSES = ['pending', 'shipped', 'delivered', 'cancelled']
     PAYMENT_METHODS = ['credit card', 'paypal', 'bank transfer']
@@ -173,13 +172,10 @@ def generate_session(fake, user_id, start_date, products):
                     'line_total': price
                 })
                 total_amount += price
-            new_location = generate_location(fake)
-            locations.append(new_location)
             orders.append({
                 'order_id': order_id,
                 'user_id': user_id,
                 'order_date': event_time,
-                'shipping_location_id': new_location.get('location_id'),
                 'order_status': random.choice(ORDER_STATUSES),
                 'payment_method': random.choice(PAYMENT_METHODS),
                 'total_amount': total_amount,
@@ -192,7 +188,6 @@ def generate_session(fake, user_id, start_date, products):
         'user_events': user_events,
         'order_items': order_items,
         'orders': orders,
-        'locations': locations,
     }
 
 
@@ -200,10 +195,11 @@ def generate_user_and_events(fake, products):
     local_user_events = []
     local_order_items = []
     local_orders = []
-    local_locations = []
     
     # generate user info
     new_user = generate_user(fake)
+    new_location = generate_location(fake)
+    new_user['location_id'] = new_location['location_id']
     event_time = new_user.get('created_at')
     user_id = new_user.get('user_id')
     
@@ -225,14 +221,13 @@ def generate_user_and_events(fake, products):
         local_user_events += new_session.get('user_events')
         local_order_items += new_session.get('order_items')
         local_orders += new_session.get('orders')
-        local_locations += new_session.get('locations')
     
     return {
         'user': new_user,
         'user_events': local_user_events,
         'order_items': local_order_items,
         'orders': local_orders,
-        'locations': local_locations,
+        'locations': [new_location],
     }
 
 
