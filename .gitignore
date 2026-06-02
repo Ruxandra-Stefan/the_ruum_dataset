@@ -170,5 +170,9 @@ cython_debug/
 # Ruff stuff:
 .ruff_cache/
 
+# DuckDB
+*.duckdb
+*.duckdb.wal
+
 # PyPI configuration file
 .pypirc

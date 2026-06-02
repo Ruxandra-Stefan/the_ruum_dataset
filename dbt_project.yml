@@ -1,0 +1,23 @@
+name: the_ruum
+version: '1.0.0'
+config-version: 2
+profile: the_ruum
+
+model-paths: ["models"]
+seed-paths: ["output"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+analysis-paths: ["analyses"]
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  the_ruum:
+    staging:
+      +materialized: view
+    mart:
+      +materialized: table
