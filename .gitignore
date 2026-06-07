@@ -170,6 +170,10 @@ cython_debug/
 # Ruff stuff:
 .ruff_cache/
 
+# dbt
+logs/
+dbt_packages/
+
 # DuckDB
 *.duckdb
 *.duckdb.wal

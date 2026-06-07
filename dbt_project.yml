@@ -4,7 +4,7 @@ config-version: 2
 profile: the_ruum
 
 model-paths: ["models"]
-seed-paths: ["output"]
+seed-paths: ["output", "seeds"]
 test-paths: ["tests"]
 macro-paths: ["macros"]
 snapshot-paths: ["snapshots"]
