@@ -1,8 +1,13 @@
 version: 2
 
+# Test philosophy: {{ doc('testing_philosophy') }}
+# Source layer tests: {{ doc('testing_source_layer') }}
+# Model layer tests: {{ doc('testing_model_layer') }}
+# Quebec compliance tests: {{ doc('testing_quebec_compliance') }}
+
 models:
   - name: stg_users
-    description: One row per registered user.
+    description: "{{ doc('stg_users') }}"
     columns:
       - name: user_id
         description: Primary key — unique identifier for the user.
@@ -18,68 +23,102 @@ models:
         tests:
           - not_null
       - name: email
-        description: User's email address.
+        description: "User's email address. Note: May have duplicates. Use is_duplicate_email flag to identify."
         tests:
           - not_null
-          - unique
       - name: created_at
         description: Timestamp when the user registered.
         tests:
           - not_null
       - name: location_id
-        description: Foreign key to stg_locations.
+        description: Foreign key to stg_locations.location_id — links the user to their geographic and compliance record.
         tests:
           - not_null
           - relationships:
               arguments:
                 to: ref('stg_locations')
                 field: location_id
+      - name: is_duplicate_email
+        description: "{{ doc('col_is_duplicate_email') }}"
+        tests:
+          - not_null
 
   - name: stg_locations
-    description: One row per user location. All records are US-based.
+    description: "{{ doc('stg_locations') }}"
     columns:
       - name: location_id
-        description: Primary key.
+        description: Primary key — unique identifier for the location record.
         tests:
           - not_null
           - unique
       - name: country_code
-        description: ISO 2-letter country code.
+        description: ISO 2-letter country code (US or CA).
         tests:
           - not_null
           - accepted_values:
-              values: ['US']
+              arguments:
+                values: ['US', 'CA']
       - name: country_full_name
-        description: Full country name.
+        description: Full name of the country (United States or Canada).
         tests:
           - not_null
       - name: city
-        description: City name.
+        description: City name for the location.
         tests:
           - not_null
       - name: state
-        description: US state name.
+        description: "US state code or Canadian province code (e.g., CA, NY, QC, ON)."
         tests:
           - not_null
       - name: zip_code
-        description: Postal code as a string.
+        description: Postal code as a string (ZIP for US, postal code for Canada).
         tests:
           - not_null
       - name: address
-        description: Street address.
+        description: Street address for the location.
         tests:
           - not_null
+      - name: currency_code
+        description: Currency code for the location (USD for US, CAD for Canada).
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['USD', 'CAD']
+      - name: exchange_rate_to_usd
+        description: "{{ doc('col_exchange_rate_to_usd') }}"
+        tests:
+          - not_null
+      - name: is_excluded_supply_chain
+        description: "{{ doc('col_is_excluded_supply_chain') }}"
+        tests:
+          - not_null
+      - name: supply_chain_exclusion_reason
+        description: Reason for supply chain exclusion. Null if not excluded.
+      - name: is_quebec_compliant_required
+        description: "{{ doc('col_is_quebec_compliant_required') }}"
+        tests:
+          - not_null
+      - name: quebec_compliance_notes
+        description: "{{ doc('quebec_compliance_overview') }}"
+      - name: marketing_language_requirement
+        description: "{{ doc('col_marketing_language_requirement') }}"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['EN', 'EN,FR']
 
   - name: stg_orders
-    description: One row per order placed by a user.
+    description: "{{ doc('stg_orders') }}"
     columns:
       - name: order_id
-        description: Primary key.
+        description: Primary key — unique identifier for the order.
         tests:
           - not_null
           - unique
       - name: user_id
-        description: Foreign key to stg_users.
+        description: Foreign key to stg_users.user_id — the customer who placed this order.
         tests:
           - not_null
           - relationships:
@@ -91,32 +130,34 @@ models:
         tests:
           - not_null
       - name: order_status
-        description: Current fulfilment status of the order.
+        description: "{{ doc('col_order_status') }}"
         tests:
           - not_null
           - accepted_values:
-              values: ['pending', 'shipped', 'delivered', 'cancelled']
+              arguments:
+                values: ['pending', 'shipped', 'delivered', 'cancelled', 'pending_refund']
       - name: payment_method
         description: Payment method used at checkout.
         tests:
           - not_null
           - accepted_values:
-              values: ['credit card', 'paypal', 'bank transfer']
+              arguments:
+                values: ['credit card', 'paypal', 'bank transfer']
       - name: updated_at
         description: Timestamp of the last status update.
         tests:
           - not_null
 
   - name: stg_order_items
-    description: One row per line item within an order.
+    description: "{{ doc('stg_order_items') }}"
     columns:
       - name: order_item_id
-        description: Primary key.
+        description: Primary key — unique identifier for the order line item.
         tests:
           - not_null
           - unique
       - name: order_id
-        description: Foreign key to stg_orders.
+        description: Foreign key to stg_orders.order_id — the order this line item belongs to.
         tests:
           - not_null
           - relationships:
@@ -124,7 +165,7 @@ models:
                 to: ref('stg_orders')
                 field: order_id
       - name: product_id
-        description: Foreign key to stg_products.
+        description: Foreign key to stg_products.product_id — the product purchased on this line.
         tests:
           - not_null
           - relationships:
@@ -149,10 +190,10 @@ models:
           - not_null
 
   - name: stg_products
-    description: One row per product in the catalogue.
+    description: "{{ doc('stg_products') }}"
     columns:
       - name: product_id
-        description: Primary key.
+        description: Primary key — unique identifier for the product.
         tests:
           - not_null
           - unique
@@ -180,15 +221,15 @@ models:
           - not_null
 
   - name: stg_user_events
-    description: One row per user interaction event captured during browsing and checkout.
+    description: "{{ doc('stg_user_events') }}"
     columns:
       - name: event_id
-        description: Primary key.
+        description: Primary key — unique identifier for the user interaction event.
         tests:
           - not_null
           - unique
       - name: user_id
-        description: Foreign key to stg_users.
+        description: Foreign key to stg_users.user_id — the user who triggered this event.
         tests:
           - not_null
           - relationships:
@@ -196,11 +237,12 @@ models:
                 to: ref('stg_users')
                 field: user_id
       - name: event_type
-        description: Type of interaction recorded.
+        description: Type of interaction recorded (user_sign_up, page_view, or add_to_cart).
         tests:
           - not_null
           - accepted_values:
-              values: ['user_sign_up', 'page_view', 'add_to_cart']
+              arguments:
+                values: ['user_sign_up', 'page_view', 'add_to_cart']
       - name: event_timestamp
         description: Timestamp when the event was fired.
         tests:
@@ -210,7 +252,7 @@ models:
         tests:
           - not_null
       - name: product_id
-        description: Product in context at event time; null for non-product pages (e.g. /catalog, /checkout, /signup).
+        description: Foreign key to stg_products.product_id — the product in context when the event fired. Nullable for non-product pages (e.g. /catalog, /checkout, /signup).
         tests:
           - relationships:
               arguments:
@@ -218,3 +260,238 @@ models:
                 field: product_id
       - name: additional_details
         description: Optional JSON payload for supplementary event data. Currently unpopulated.
+      - name: is_quebec_event
+        description: "{{ doc('col_is_quebec_compliant_required') }}"
+        tests:
+          - not_null
+
+sources:
+  - name: raw_ecommerce
+    description: "{{ doc('src_raw_ecommerce') }}"
+    database: main
+    schema: main
+    tables:
+      - name: users
+        description: "{{ doc('src_users') }}"
+        columns:
+          - name: user_id
+            description: Primary key — raw unique identifier for the customer registration.
+            tests:
+              - not_null
+              - unique
+          - name: first_name
+            description: Customer's first name.
+            tests:
+              - not_null
+          - name: last_name
+            description: Customer's last name.
+            tests:
+              - not_null
+          - name: email
+            description: Customer's email address. May contain duplicates if the same customer registers more than once.
+            tests:
+              - not_null
+              - unique
+          - name: created_at
+            description: Timestamp when the customer completed registration.
+            tests:
+              - not_null
+          - name: location_id
+            description: Foreign key to locations.location_id — links the customer to their geographic record.
+            tests:
+              - not_null
+              - relationships:
+                  arguments:
+                    to: source('raw_ecommerce', 'locations')
+                    field: location_id
+
+      - name: locations
+        description: "{{ doc('src_locations') }}"
+        columns:
+          - name: location_id
+            description: Primary key — raw unique identifier for the location record.
+            tests:
+              - not_null
+              - unique
+          - name: country_code
+            description: ISO 2-letter country code (US or CA).
+            tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values: ['US', 'CA']
+          - name: country_full_name
+            description: Full country name (United States or Canada).
+            tests:
+              - not_null
+          - name: city
+            description: City name.
+            tests:
+              - not_null
+          - name: state
+            description: "State (US) or Province code (Canada). For US: state codes (e.g., CA, NY). For Canada: province codes (e.g., ON, QC)."
+            tests:
+              - not_null
+          - name: address
+            description: Street address.
+            tests:
+              - not_null
+          - name: zip_code
+            description: Postal code as a string (ZIP for US, postal code for Canada).
+            tests:
+              - not_null
+
+      - name: products
+        description: "{{ doc('src_products') }}"
+        columns:
+          - name: id
+            description: Primary key — raw unique identifier for the product.
+            tests:
+              - not_null
+              - unique
+          - name: name
+            description: Product display name.
+            tests:
+              - not_null
+          - name: category
+            description: Product category (e.g., Bedroom, Kitchen, Living Room).
+            tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values: ['Living Room', 'Bedroom', 'Kitchen']
+          - name: description
+            description: Long-form product description.
+          - name: price
+            description: Product list price in USD.
+            tests:
+              - not_null
+          - name: dimensions
+            description: Physical dimensions (e.g., 120x60x40 cm).
+          - name: material
+            description: Primary material composition.
+          - name: stock
+            description: Current units in stock.
+            tests:
+              - not_null
+
+      - name: orders
+        description: "{{ doc('src_orders') }}"
+        columns:
+          - name: order_id
+            description: Primary key — raw unique identifier for the order.
+            tests:
+              - not_null
+              - unique
+          - name: user_id
+            description: Foreign key to users.user_id — the customer who placed this order.
+            tests:
+              - not_null
+              - relationships:
+                  arguments:
+                    to: source('raw_ecommerce', 'users')
+                    field: user_id
+          - name: order_date
+            description: Timestamp when order was placed.
+            tests:
+              - not_null
+          - name: order_status
+            description: Current order fulfillment status.
+            tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values: ['pending', 'shipped', 'delivered', 'cancelled', 'pending_refund']
+          - name: payment_method
+            description: Payment method used.
+            tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values: ['credit card', 'paypal', 'bank transfer']
+          - name: updated_at
+            description: Last status update timestamp.
+            tests:
+              - not_null
+
+      - name: order_items
+        description: "{{ doc('src_order_items') }}"
+        columns:
+          - name: order_item_id
+            description: Primary key — raw unique identifier for the order line item.
+            tests:
+              - not_null
+              - unique
+          - name: order_id
+            description: Foreign key to orders.order_id — the order this line item belongs to.
+            tests:
+              - not_null
+              - relationships:
+                  arguments:
+                    to: source('raw_ecommerce', 'orders')
+                    field: order_id
+          - name: product_id
+            description: Foreign key to products.id — the product purchased on this line.
+            tests:
+              - not_null
+              - relationships:
+                  arguments:
+                    to: source('raw_ecommerce', 'products')
+                    field: id
+          - name: quantity
+            description: Number of units ordered.
+            tests:
+              - not_null
+          - name: unit_price
+            description: Price per unit at purchase time.
+            tests:
+              - not_null
+          - name: discount
+            description: Discount percentage applied (0.0-1.0).
+            tests:
+              - not_null
+          - name: line_total
+            description: Final line amount (quantity * unit_price * (1 - discount)).
+            tests:
+              - not_null
+
+      - name: user_events
+        description: "{{ doc('src_user_events') }}"
+        columns:
+          - name: event_id
+            description: Primary key — raw unique identifier for the user interaction event.
+            tests:
+              - not_null
+              - unique
+          - name: user_id
+            description: Foreign key to users.user_id — the customer who triggered this event.
+            tests:
+              - not_null
+              - relationships:
+                  arguments:
+                    to: source('raw_ecommerce', 'users')
+                    field: user_id
+          - name: event_type
+            description: Type of user interaction.
+            tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values: ['user_sign_up', 'page_view', 'add_to_cart']
+          - name: event_timestamp
+            description: When the event occurred.
+            tests:
+              - not_null
+          - name: page_url
+            description: URL where event fired.
+            tests:
+              - not_null
+          - name: product_id
+            description: Foreign key to products.id — the product in context when the event fired. Nullable for non-product pages.
+            tests:
+              - relationships:
+                  arguments:
+                    to: source('raw_ecommerce', 'products')
+                    field: id
+          - name: additional_details
+            description: Optional JSON metadata for the event.

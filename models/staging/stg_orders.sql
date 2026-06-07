@@ -5,4 +5,4 @@ select
     order_status,
     payment_method,
     updated_at::timestamp as updated_at
-from {{ ref('orders') }}
+from {{ source('raw_ecommerce', 'orders') }}

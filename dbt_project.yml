@@ -19,5 +19,8 @@ models:
   the_ruum:
     staging:
       +materialized: view
+    staging_incremental:
+      +materialized: incremental
+      +on_schema_change: fail
     mart:
       +materialized: table

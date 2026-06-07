@@ -7,4 +7,4 @@ select
     dimensions,
     material,
     stock
-from {{ ref('products') }}
+from {{ source('raw_ecommerce', 'products') }}

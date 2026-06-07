@@ -1,0 +1,152 @@
+version: 2
+
+# Incremental layer test considerations: {{ doc('testing_incremental_layer') }}
+
+models:
+  - name: stg_orders_incr
+    description: Incremental orders table - processes only new/updated orders to avoid full table rebuilds. Includes region-specific compliance flags.
+    config:
+      materialized: incremental
+      unique_key: order_id
+      tags: ['incremental', 'fact']
+    columns:
+      - name: order_id
+        description: Primary key - unique order identifier.
+        tests:
+          - not_null
+          - unique
+      - name: user_id
+        description: Foreign key to user. Links to stg_users.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_users')
+                field: user_id
+      - name: order_date
+        description: Timestamp when order was placed.
+        tests:
+          - not_null
+      - name: order_status
+        description: "{{ doc('col_order_status') }}"
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['pending', 'shipped', 'delivered', 'cancelled', 'pending_refund']
+      - name: payment_method
+        description: Payment method used (credit card, paypal, bank transfer).
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['credit card', 'paypal', 'bank transfer']
+      - name: updated_at
+        description: Last status update timestamp. Used for incremental processing.
+        tests:
+          - not_null
+      - name: fulfillment_region_type
+        description: "Region type for compliance/fulfillment purposes: QC (Quebec-compliant), EXCLUDED (supply chain exclusion), or STANDARD."
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['QC', 'EXCLUDED', 'STANDARD']
+
+  - name: stg_order_items_incr
+    description: Incremental order line items - processes only items from new orders. Immutable after creation.
+    config:
+      materialized: incremental
+      unique_key: order_item_id
+      tags: ['incremental', 'fact']
+    columns:
+      - name: order_item_id
+        description: Primary key - unique line item identifier.
+        tests:
+          - not_null
+          - unique
+      - name: order_id
+        description: Foreign key to order. Links to stg_orders_incr.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_orders_incr')
+                field: order_id
+      - name: product_id
+        description: Foreign key to product. Links to stg_products.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_products')
+                field: product_id
+      - name: quantity
+        description: Number of units ordered.
+        tests:
+          - not_null
+      - name: unit_price
+        description: Price per unit at purchase time.
+        tests:
+          - not_null
+      - name: discount
+        description: Discount percentage applied (0.0 to 1.0).
+        tests:
+          - not_null
+      - name: line_total
+        description: Final line amount after discount.
+        tests:
+          - not_null
+      - name: loaded_at
+        description: Timestamp when this row was loaded into the incremental table. Infrastructure timestamp — not a business event time. Use order_date from stg_orders for business timing.
+        tests:
+          - not_null
+
+  - name: stg_user_events_incr
+    description: "Incremental user events (HIGH VOLUME) - processes only new events. Critical for performance scaling. Includes Quebec compliance flag for privacy/tracking compliance."
+    config:
+      materialized: incremental
+      unique_key: event_id
+      tags: ['incremental', 'fact', 'high-volume']
+    columns:
+      - name: event_id
+        description: Primary key - unique event identifier.
+        tests:
+          - not_null
+          - unique
+      - name: user_id
+        description: Foreign key to user. Links to stg_users.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_users')
+                field: user_id
+      - name: event_type
+        description: Type of event (user_sign_up, page_view, add_to_cart).
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['user_sign_up', 'page_view', 'add_to_cart']
+      - name: event_timestamp
+        description: Timestamp when event occurred. Used for incremental processing.
+        tests:
+          - not_null
+      - name: page_url
+        description: URL where event was triggered.
+        tests:
+          - not_null
+      - name: product_id
+        description: "Product in context (nullable for non-product pages like /catalog, /checkout). Links to stg_products."
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_products')
+                field: product_id
+      - name: additional_details
+        description: Optional JSON metadata for the event.
+      - name: is_quebec_event
+        description: "Quebec compliance flag. True if user is in Quebec (QC). Used to enforce privacy consent and language requirements per PIPEDA and Bill 101."
+        tests:
+          - not_null
