@@ -35,7 +35,6 @@ Activate:
 
 ```bash
 pip install -r requirements.txt
-pip install duckdb dbt-duckdb
 ```
 
 ---
@@ -147,7 +146,6 @@ source .venv/bin/activate        # Mac/Linux
 # .venv\Scripts\activate         # Windows
 
 pip install -r requirements.txt
-pip install duckdb dbt-duckdb
 
 # Configure ~/.dbt/profiles.yml  (see step 4)
 
